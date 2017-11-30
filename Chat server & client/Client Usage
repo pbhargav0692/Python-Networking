@@ -1,0 +1,8 @@
+The client code does either listen to incoming messages from the server or check user input.
+If the user types in a message then send it to the server.
+
+We use select() function to handle both messages: one from stdin which is a user input and the other from the server.
+As we recall, the server side usage which is a non-blocking mode, we don't do anything on the select() function, and we use it as blocking mode.
+So, the select() function blocks (waits) till something happens.
+It will return only when either the server socket receives a message or the user enters a message.
+

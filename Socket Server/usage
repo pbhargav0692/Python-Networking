@@ -1,0 +1,25 @@
+Echo Server
+
+In this section, we'll create an echo server using socketserver which is a module that simplifies the task of writing network servers.
+Actually, the socketserver is a framework for network servers. For a version < 3.x.x, SocketServer should be used instead of socketserver.
+
+The server we're creating echoes the message received from clients except it sends the message back upper-cased.
+
+Here are the steps to take to create a server:
+
+1) We must create a request handler class by subclassing the BaseRequestHandler class.
+        class MyTCPSocketHandler(SocketServer.BaseRequestHandler):
+2) The child class should override the inherited handle() method.
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        print("{} wrote:".format(self.client_address[0]))
+        print(self.data)
+        # just send back the same data, but upper-cased
+        self.request.sendall(self.data.upper())
+
+3) The handle() method will process incoming requests.
+4) We must instantiate one of the server classes, passing it the server's address and the request handler class.
+        server = SocketServer.TCPServer((HOST, PORT), MyTCPSocketHandler)
+5) Finally, call the handle_request() or serve_forever() method of the server object to process one or many requests.
+

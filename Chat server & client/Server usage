@@ -1,0 +1,56 @@
+# server.py
+
+The server is like a middle man among clients. It can queue up to 10 clients. The server broadcasts any messages from a client to the other participants. So, the server provides a sort of chatting room.
+
+In this chat code, the server is handling the sockets in non-blocking mode using select.select() method:
+
+ready_to_read, ready_to_write, in_error = \
+               select.select(
+                  potential_readers,
+                  potential_writers,
+                  potential_errs,
+                  timeout)
+We pass select() three lists:
+
+the first contains all sockets that we might want to try reading
+the second all the sockets we might want to try writing to
+the last (normally left empty) those that we want to check for errors
+Though the select() itself is a blocking call (it's waiting for I/O completion), we can give it a timeout. In the code, we set time_out = 0, and it will poll and never block.
+
+Actually, the select() function monitors all the client sockets and the server socket for readable activity. If any of the client socket is readable then it means that one of the chat client has send a message.
+
+When the select function returns, the ready_to_read will be filled with an array consisting of all socket descriptors that are readable.
+
+In the code, we're dealing with two cases:
+
+If the master socket is readable, the server would accept the new connection.
+If any of the client socket is readable, the server would read the message, and broadcast it back to all clients except the one who send the message.
+
+On recv() & disconnection
+There is an ambiguity about how we detect whether the connect is broken or not.
+
+Here is an excerpts from http://docs.python.org/2/howto/sockets.html:
+
+"When a recv() returns 0 bytes, it means the other side has closed (or is in the process of closing) the connection. You will not receive any more data on this connection. Ever. You may be able to send data successfully."
+
+"A protocol like HTTP uses a socket for only one transfer. The client sends a request, then reads a reply. That's it. The socket is discarded. This means that a client can detect the end of the reply by receiving 0 bytes."
+
+"But if you plan to reuse your socket for further transfers, you need to realize that there is no EOT on a socket. I repeat: if a socket send or recv() returns after handling 0 bytes, the connection has been broken. If the connection has not been broken, you may wait on a recv() forever, because the socket will not tell you that there's nothing more to read (for now)."
+
+So, in the code, we consider the connection is off when we see no more data from the ready_to_read socket:
+
+
+# process data recieved from client,
+try:
+    # receiving data from the socket.
+    data = sock.recv(RECV_BUFFER)
+    if data:
+        # there is something in the socket
+        broadcast(server_socket, sock, "\r" + '[' + str(sock.getpeername()) + '] ' + data)
+    else:
+        # remove the socket that's broken
+        if sock in SOCKET_LIST:
+            SOCKET_LIST.remove(sock)
+
+        # at this stage, no data means probably the connection has been broken
+        broadcast(server_socket, sock, "Client (%s, %s) is offline\n" % addr)
